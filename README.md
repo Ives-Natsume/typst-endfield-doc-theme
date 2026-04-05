@@ -4,7 +4,7 @@ This is a Typst document template inspired by the art style of [*Arknights: Endf
 
 ## Preview
 
-![Cover](thumbnail.png)
+![Cover](img/cover.png)
 ![Sample Page](img/Page_3.png)
 
 ## Usage
