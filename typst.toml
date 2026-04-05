@@ -1,0 +1,20 @@
+[package]
+name        = "endfield-doc"
+version     = "0.1.0"
+entrypoint  = "lib.typ"
+authors     = ["Your Name <@your-github-handle>"]
+license     = "MIT"
+description = "A4 document template styled after the Arknights: Endfield aesthetic."
+repository  = "https://github.com/your-username/endfield-doc"
+keywords    = ["document", "template", "arknights", "endfield", "a4"]
+categories  = ["office"]
+compiler    = ">=0.12.0"
+
+exclude = [
+  "/assets/",       # screenshots used in README
+]
+
+[template]
+path       = "template"
+entrypoint = "main.typ"
+thumbnail  = "thumbnail.png"
