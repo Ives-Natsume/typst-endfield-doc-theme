@@ -317,7 +317,7 @@
       rect(width: .3em, height: 1em, fill: clr-primary),
       text(size: 1.15em, weight: "bold", fill: clr-darkest, it.body),
     )
-    v(.15em)
+    v(.2em)
   }
 
   // Level 3: plain text, muted color

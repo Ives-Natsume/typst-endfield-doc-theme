@@ -3,42 +3,67 @@
 //
 // Delete or replace any fields you don't need.
 #import "@preview/endfield-doc:0.1.0": endfield-doc
+#set math.equation(numbering: "(1)")
 
 #show: endfield-doc.with(
-  title:       [Document Title],
-  subtitle:    [Subtitle],
-  author:      [Author Name],
-  date:        datetime.today().display("[year]-[month]-[day]"),
-  institution: [Institution],
-  doc-footer:  [Institution],
-  lang:        "en",
-  region:      "us",
-  // font-cjk:   ("HarmonyOS Sans SC",),
-  // font-latin: ("HarmonyOS Sans",),
-  // font-code:  ("JetBrains Mono", "Consolas"),
-  // font-emoji: ("Segoe UI Emoji", "Noto Emoji"),
+  title: [Arknights: Endfield Typst Template],
+  subtitle: [Template Testing and Debugging],
+  author: [
+    metasequoiaNI#counter(footnote).update(0)#footnote[Rinkosoft CO., LTD.]<rinkosoft>,
+    Yvonne#footnote[Endfield Industries, OMV Dijiang, Talos II Synchorous Orbit]<endfield>#footnote[United Workers' Syndicates of Talos II (Valley IV Base), Valley IV, Talos II]<uwst>,
+    Zhuang Fangyi#footnote[Hongshan Academy of Sciences, Wuling ASTD, Talos II]<wuling>],
+  date: datetime.today().display("[year]-[month]-[day]"),
+  institution: [
+    Rinkosoft
+  ],
+  lang: "en",
+  region: "cn",
 )
 
-= Introduction
+= Latin Text Testing
 
-Your document begins here. Text flows automatically across pages.
+The Ætherside represents a comprehensive dimensional state at Depth 1, overlapping with realspace (Depth 0) across subterranean, atmospheric, and orbital regions. @depth-equation shows the correlation between proximity to rift boundaries and local Depth readings.
 
-== Background
+$ D(x) = tanh(lambda x) $ <depth-equation>
 
-Write your content using standard Typst markup: *bold*, _italic_,
-`inline code`, and so on.
+Where $D$ represents the Depth field taking values in $[-1, 1]$, with $D = 0$ being realspace (normal conditions), $D = -1$ the Originium Internalization Universe, and $D = 1$ the Ætherside. The parameter $x$ denotes proximity to rift boundaries. Active Blight manifests most intensely when depth readings approach $0.5$, corresponding to the Ætherside-Realspace overlap zone where the Higgs-like scalar field undergoes significant deviation from the vacuum expectation value.
 
-- Bullet list item
-- Another item
+= Special Formatting Test
 
-== Goals
+== Code Block
 
-#lorem(40)
+```Rust
+pub fn spawn_model(
+    mut commands:   Commands,
+    mut meshes:     ResMut<Assets<Mesh>>,
+    mut materials:  ResMut<Assets<MmdMaterial>>,
+    mut ibp_assets: ResMut<Assets<SkinnedMeshInverseBindposes>>,
+    asset_server:   Res<AssetServer>,
+) {
+    let extra = vec!["other tex".to_string(), "spa".to_string()];
 
-= Main Content
+    spawn_pmx_model(
+        &mut commands, &mut meshes, &mut materials, &mut ibp_assets, &asset_server,
+        include_bytes!("../../assets/perlica/perlica.pmx"),
+        &MmdModelMetadata {
+            display_name:               "Perlica".to_string(),
+            pmx_name:                   String::new(),
+            file_path:                  "perlica/perlica.pmx".to_string(),
+            other_texture_paths:        extra.clone(),
+            material_mapping_toml_path: Some("perlica/material.toml".to_string()),
+        },
+        Transform::from_xyz(-16.0, 0.0, 0.0),
+    );
+}
+```
 
-#lorem(80)
+= Known Issue & Acknowledgements
 
-== Details
+== Known Issue
 
-#lorem(60)
+- Italics are not rendered correctly with HarmonyOS Sans
+
+== Acknowledgements
+
+- _Arknights: Endfield_
+- #link("https://github.com/leostudiooo/typst-touying-theme-endfield.git", "Endfield Style Touying Theme for Typst by Leostudiooo")
