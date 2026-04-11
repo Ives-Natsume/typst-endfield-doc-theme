@@ -13,6 +13,7 @@
 #let clr-green       = rgb("#00FF9A")
 #let clr-bar         = rgb("#777777")
 #let clr-primary     = rgb("#FFFA01")             // characteristic yellow accent
+#let clr-link        = rgb("#1a6fbf")             // hyperlink blue
 
 // ── UI Components ────────────────────────────────────────────────────────────
 
@@ -216,6 +217,9 @@
   //   U+2600–U+27BF    — miscellaneous symbols & dingbats
   //   U+2300–U+23FF    — miscellaneous technical (clocks, arrows …)
   show regex("[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2300}-\\u{23FF}]+"): set text(font: font-emoji + main-font-stack)
+
+  // ── Link styles ─────────────────────────────────────────────────────────────
+  show link: it => text(fill: clr-link, it)
 
   // ── Cover page ──────────────────────────────────────────────────────────────
   _cover-page(
