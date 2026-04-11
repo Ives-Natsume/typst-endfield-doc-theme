@@ -97,10 +97,11 @@
   subtitle: none,
   author: none,
   date: none,
-  institution: none
+  institution: none,
+  paper: "a4",
 ) = {
   page(
-    paper: "a4",
+    paper: paper,
     margin: (x: 4em, top: 4em, bottom: 4em),
     header: none,
     footer: none,
@@ -183,6 +184,7 @@
   author:      none,
   date:        none,
   institution: none,
+  paper:       "a4",
   lang:        "zh",
   region:      "cn",
   font-cjk:    ("HarmonyOS Sans SC", "HarmonyOS Sans Italic"),
@@ -195,6 +197,7 @@
   // emoji fonts are excluded here; they are routed via a show rule below
   // to avoid adding them to the lookup chain for every non-emoji character.
   let main-font-stack = font-cjk + font-latin
+  let code-font-stack = font-code + main-font-stack
 
   // CJK first: prevents Latin fonts that bundle CJK glyphs from overriding
   // the intended CJK typeface.
@@ -221,11 +224,12 @@
     author:      author,
     date:        date,
     institution: institution,
+    paper:       paper,
   )
 
   // ── Document-wide page settings ─────────────────────────────────────────────
   set page(
-    paper: "a4",
+    paper: paper,
     // bottom margin must be large enough for: footer height (~2em) + footnotes.
     // footer-descent is intentionally left at default so Typst can correctly
     // reserve space for footnotes above the footer.
@@ -267,7 +271,7 @@
           radius: (top: 2pt, bottom: 2pt),
           stroke: (left: .35em + clr-primary),
           {
-            set text(font: font-code, size: 1em, fill: clr-darkest)
+            set text(font: code-font-stack, size: 1em, fill: clr-darkest)
             it
           }
         )
@@ -281,7 +285,7 @@
         radius: 2pt,
         stroke: 0.5pt + clr-lightest-tr,
         {
-          show regex("[\x20-\x7E]+"): set text(font: font-code)
+          show regex("[\x20-\x7E]+"): set text(font: code-font-stack)
           it
         }
       )
