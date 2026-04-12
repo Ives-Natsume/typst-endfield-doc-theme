@@ -7,6 +7,8 @@
 #let clr-dark        = rgb("#5c5c5c")
 #let clr-light       = rgb("#D9D9D9")
 #let clr-lightest    = rgb("#E6E6E6")
+#let clr-bg-light    = rgb("#FCFCFC")
+#let clr-bg-dark     = rgb("#E7E7E7")
 #let clr-codebg      = rgb("#fdfde799")
 #let clr-lightest-tr = rgb("#e6e6e6da")
 #let clr-pink        = rgb("#E5007F")
@@ -108,8 +110,8 @@
     footer: none,
     fill: gradient.linear(
       angle: 135deg,
-      clr-lightest.lighten(10%),
-      clr-lightest.darken(15%),
+      clr-bg-light,
+      clr-bg-dark,
     ),
     background: place(bottom, image("contour_map.svg", width: 100%)),
   )[
@@ -242,8 +244,8 @@
     footer: _doc-footer(doc-footer),
     fill: gradient.linear(
       angle: 90deg,
-      clr-lightest.lighten(8%),
-      clr-lightest.darken(8%),
+      clr-bg-light,
+      clr-bg-dark,
     ),
     background: place(bottom, image("contour_map.svg", width: 100%)),
   )
