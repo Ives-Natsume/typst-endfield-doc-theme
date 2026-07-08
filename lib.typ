@@ -195,6 +195,7 @@
   font-code:   ("JetBrains Mono", "Consolas"),
   font-emoji:  ("Segoe UI Emoji", "Noto Emoji",),
   doc-footer:  text("ENDFIELD", weight: "bold") + text(" INDUSTRIES", size: 0.8em),
+  display-outline: true,
   body,
 ) = {
   // emoji fonts are excluded here; they are routed via a show rule below
@@ -338,7 +339,7 @@
   }
 
   // ── Table of contents ───────────────────────────────────────────────────────
-  {
+  if display-outline {
     show heading: set text(fill: clr-darkest)
     outline(title: [目录 / Contents], indent: auto)
   }

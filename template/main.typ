@@ -18,6 +18,7 @@
   ],
   lang: "en",
   region: "cn",
+  display-outline: true,
 )
 
 = Latin Text Testing
