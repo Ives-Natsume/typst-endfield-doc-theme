@@ -19,6 +19,7 @@
   lang: "en",
   region: "cn",
   display-outline: true,
+  break-page-on-h1: true,
 )
 
 = Latin Text Testing

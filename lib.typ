@@ -196,6 +196,7 @@
   font-emoji:  ("Segoe UI Emoji", "Noto Emoji",),
   doc-footer:  text("ENDFIELD", weight: "bold") + text(" INDUSTRIES", size: 0.8em),
   display-outline: true,
+  break-page-on-h1: true, 
   body,
 ) = {
   // emoji fonts are excluded here; they are routed via a show rule below
@@ -304,7 +305,9 @@
 
   // Level 1: primary-color accent bar + rule, starts a new page
   show heading.where(level: 1): it => {
-    pagebreak(weak: true)
+    if break-page-on-h1 {
+      pagebreak(weak: true)
+    }
     v(1.0em)
     grid(
       columns: (auto, 1fr),
