@@ -41,11 +41,16 @@
 }
 
 // ── Page header ───────────────────────────────────────────────────────────────
-// Displays the document title (left, primary color) and the current level-1
-// heading (right, light color) inside a dark bar.
 #let _doc-header(doc-title) = context {
-  let headings = query(selector(heading.where(level: 1)).before(here()))
-  let section  = if headings.len() > 0 { headings.last().body } else { [] }
+  let current-page = here().page()
+  
+  let all-headings = query(heading.where(level: 1))
+  let past-headings = all-headings.filter(h => h.location().page() <= current-page)
+  let section = if past-headings.len() > 0 { 
+    past-headings.last().body 
+  } else { 
+    [] 
+  }
 
   block(
     width: 100%,
