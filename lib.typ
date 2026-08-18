@@ -195,7 +195,7 @@
   paper:       "a4",
   lang:        "zh",
   region:      "cn",
-  font-cjk:    ("HarmonyOS Sans SC", "HarmonyOS Sans Italic"),
+  font-cjk:    ("HarmonyOS Sans", "HarmonyOS Sans Italic"),
   font-latin:  ("HarmonyOS Sans", "HarmonyOS Sans Italic"),
   font-code:   ("JetBrains Mono", "Consolas"),
   font-emoji:  ("Segoe UI Emoji", "Noto Emoji",),
