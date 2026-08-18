@@ -3,23 +3,97 @@
 // Does NOT require Touying — suitable for regular flowing documents.
 
 // ── Color palette (mirrors endfield theme defaults) ───────────────────────────
-#let clr-darkest     = rgb("#191919")
-#let clr-dark        = rgb("#5c5c5c")
-#let clr-light       = rgb("#D9D9D9")
-#let clr-lightest    = rgb("#E6E6E6")
-#let clr-bg-light    = rgb("#FCFCFC")
-#let clr-bg-dark     = rgb("#E7E7E7")
-#let clr-codebg      = rgb("#fdfde799")
-#let clr-lightest-tr = rgb("#e6e6e6da")
-#let clr-pink        = rgb("#E5007F")
-#let clr-green       = rgb("#00FF9A")
-#let clr-bar         = rgb("#777777")
-#let clr-primary     = rgb("#FFFA01")             // characteristic yellow accent
-#let clr-link        = rgb("#1a6fbf")             // hyperlink blue
+#let clr-darkest = rgb("#191919")
+#let clr-dark = rgb("#5c5c5c")
+#let clr-light = rgb("#D9D9D9")
+#let clr-lightest = rgb("#E6E6E6")
+#let clr-bg-light = rgb("#FCFCFC")
+#let clr-bg-dark = rgb("#E7E7E7")
+#let clr-codebg = rgb("#fdfde799")
+#let clr-lightest-tr = rgb("#e6e6e699")
+#let clr-pink = rgb("#E5007F")
+#let clr-green = rgb("#00FF9A")
+#let clr-bar = rgb("#777777")
+#let clr-primary = rgb("#FFFA01")             // characteristic yellow accent
+#let clr-link = rgb("#1a6fbf")             // hyperlink blue
+
+// ── Internal helpers ─────────────────────────────────────────────────────────
+
+// Best-effort flattening of content into a plain string, for use with
+// `set document(..)` (PDF metadata accepts strings only).
+// Footnotes are deliberately dropped so that author fields carrying affiliation
+// footnotes still produce clean metadata.
+#let _to-string(it) = {
+  if it == none {
+    ""
+  } else if type(it) == str {
+    it
+  } else if type(it) != content {
+    str(it)
+  } else if it.func() == text {
+    it.text
+  } else if it.func() == footnote {
+    ""
+  } else if it.func() == smartquote {
+    "\""
+  } else if it.func() == linebreak or it.func() == parbreak {
+    " "
+  } else if it.has("children") {
+    it.children.map(_to-string).join("")
+  } else if it.has("body") {
+    _to-string(it.body)
+  } else {
+    " "
+  }
+}
+
+// Collapses runs of whitespace left behind by dropped elements (footnotes,
+// linebreaks) and tidies up the resulting stray space before punctuation.
+#let _clean-string(it) = _to-string(it)
+.replace(regex("\\s+"), " ")
+.replace(regex(" +([,;.])"), m => m.captures.at(0))
+.trim()
+
+// Splits a comma-separated author field into the list form that
+// `set document(author: ..)` expects.
+#let _author-list(author) = {
+  if author == none { return () }
+  _clean-string(author).split(",").map(a => a.trim()).filter(a => a != "")
+}
+
+// Renders the number of a heading, plus trailing gap. Returns `none` when the
+// heading is unnumbered, so it can be added to `it.body` unconditionally.
+#let _heading-number(it) = {
+  if it.numbering == none { return none }
+  [#counter(heading).display(it.numbering)#h(.6em)]
+}
+
+// Localized default title for the table of contents.
+#let _outline-title(lang) = {
+  if lang == "zh" { [目录 / Contents] } else if lang == "ja" { [目次 / Contents] } else { [Contents] }
+}
+
+// Renders the current page number using whatever numbering pattern is active,
+// so that `page-numbering` (roman, "1 / 1", …) is honoured instead of hardcoded.
+#let _page-label() = context {
+  let pattern = here().page-numbering()
+  if pattern != none { counter(page).display(pattern) }
+}
+
+// Shared decorative background, used by both the cover and the body pages.
+#let _page-bg = place(bottom, image("contour_map.svg", width: 100%))
 
 // ── UI Components ────────────────────────────────────────────────────────────
 
-// The characteristic multi-color accent bar that adapts to content height
+// The characteristic multi-color accent bar that adapts to content height.
+// The bar is inset from the top of the container and spans 80% of its height,
+// split pink / green / yellow. Fractions are named so the proportions can be
+// tuned without decoding magic numbers.
+#let _bar-top-inset = 0.1
+#let _bar-pink-frac = 0.2
+#let _bar-green-frac = 0.2
+#let _bar-main-frac = 0.4
+
 #let _accent-bar(
   bar-width: .5em,
   container-height: 4em,
@@ -27,15 +101,14 @@
   let bar = stack(
     dir: ttb,
     spacing: 0pt,
-    rect(width: bar-width, height: container-height * 0.2, fill: clr-pink),
-    rect(width: bar-width, height: container-height * 0.2, fill: clr-green),
-    // Main body fills the remaining 60% of the container height
-    rect(width: bar-width, height: container-height * 0.4, fill: clr-primary),
+    rect(width: bar-width, height: container-height * _bar-pink-frac, fill: clr-pink),
+    rect(width: bar-width, height: container-height * _bar-green-frac, fill: clr-green),
+    rect(width: bar-width, height: container-height * _bar-main-frac, fill: clr-primary),
   )
 
   stack(
     dir: ttb,
-    v(container-height * 0.1),
+    v(container-height * _bar-top-inset),
     bar,
   )
 }
@@ -43,14 +116,16 @@
 // ── Page header ───────────────────────────────────────────────────────────────
 #let _doc-header(doc-title) = context {
   let current-page = here().page()
-  
-  let all-headings = query(heading.where(level: 1))
-  let past-headings = all-headings.filter(h => h.location().page() <= current-page)
-  let section = if past-headings.len() > 0 { 
-    past-headings.last().body 
-  } else { 
-    [] 
-  }
+
+  // NOTE: page numbers are compared instead of using `.before(here())` on
+  // purpose. The header is laid out *above* the page body, so `here()` inside
+  // the header precedes that page's own level-1 heading in document order and
+  // `.before()` would report the previous section. Comparing pages gives the
+  // section that actually starts on this page.
+  // let section = query(heading.where(level: 1)).filter(h => h.location().page() <= current-page).at(-1, default: none)
+  // let section = if section == none { [] } else { section.body }
+  let section = query(heading.where(level: 1)).filter(h => h.location().page() <= current-page).at(-1, default: none)
+  let section = if section == none { [] } else { section.body }
 
   block(
     width: 100%,
@@ -74,7 +149,7 @@
     dir: ttb,
     stack(
       dir: ltr,
-      line(stroke: .28em + clr-pink,  length: 2em),
+      line(stroke: .28em + clr-pink, length: 2em),
       line(stroke: .28em + clr-green, length: 2em),
       line(stroke: .28em + clr-primary, length: 100% - 4em),
     ),
@@ -90,9 +165,7 @@
         box(
           fill: clr-dark,
           inset: (x: .6em, y: .3em),
-          text(fill: clr-primary, weight: "bold", size: .78em,
-            counter(page).display("1"),
-          ),
+          text(fill: clr-primary, weight: "bold", size: .78em, _page-label()),
         ),
       ),
     ),
@@ -118,7 +191,7 @@
       clr-bg-light,
       clr-bg-dark,
     ),
-    background: place(bottom, image("contour_map.svg", width: 100%)),
+    background: _page-bg,
   )[
     #set footnote.entry(
       separator: line(length: 30%, stroke: .5pt + clr-dark),
@@ -127,30 +200,38 @@
     #v(1fr)
 
     #block(width: 100%)[
-      #let title-stack = stack(
-        dir: ttb,
-        spacing: .5em,
-        text(size: 2.5em, weight: "black", fill: clr-darkest, title),
-
-        if subtitle != none {
-          v(1.0em)
-          text(size: 1.5em, fill: clr-dark, subtitle)
-        },
-
-        v(1.2em),
+      // Rows are collected first and empty ones dropped, so that `stack`'s
+      // `spacing` applies only between rows that actually render. Interleaving
+      // bare `v()` spacers with `none` branches would otherwise make the gaps
+      // depend on which optional fields happen to be set.
+      #let meta-rows = (
         if author != none {
           text(size: 1.0em, fill: clr-darkest, weight: "bold", author)
         },
-
         if date != none {
-          v(.2em)
           text(size: .95em, fill: clr-dark, date)
         },
-
         if institution != none {
-          v(.2em)
           text(size: .95em, fill: clr-dark, institution)
         },
+      ).filter(r => r != none)
+
+      // Explicit gaps per row keep the rhythm stable no matter which optional
+      // fields are present: subtitle sits close under the title, while the
+      // metadata block is separated by a wider break.
+      #let title-rows = (
+        (gap: 0pt, body: text(size: 2.5em, weight: "black", fill: clr-darkest, title)),
+        if subtitle != none {
+          (gap: 1.2em, body: text(size: 1.5em, fill: clr-dark, subtitle))
+        },
+        if meta-rows.len() > 0 {
+          (gap: 1.4em, body: stack(dir: ttb, spacing: .5em, ..meta-rows))
+        },
+      ).filter(r => r != none)
+
+      #let title-stack = stack(
+        dir: ttb,
+        ..title-rows.map(r => stack(dir: ttb, v(r.gap), r.body)),
       )
 
       #context {
@@ -159,8 +240,7 @@
         grid(
           columns: (auto, 1fr),
           column-gutter: 1.2em,
-          _accent-bar(bar-width: .6em, container-height: content-height),
-          title-stack
+          _accent-bar(bar-width: .6em, container-height: content-height), title-stack,
         )
       }
     ]
@@ -185,21 +265,30 @@
 //     font-cjk:    ("HarmonyOS Sans SC",),
 //     font-latin:  ("HarmonyOS Sans",),
 //     font-code:   ("JetBrains Mono",),
+//     cover:       true,           // render the cover page
+//     outline:     true,           // render the table of contents
 //   )
 #let endfield-doc(
-  title:       [Document Title],
-  subtitle:    none,
-  author:      none,
-  date:        none,
+  title: [Document Title],
+  subtitle: none,
+  author: none,
+  date: none,
   institution: none,
-  paper:       "a4",
-  lang:        "zh",
-  region:      "cn",
-  font-cjk:    ("HarmonyOS Sans", "HarmonyOS Sans Italic"),
-  font-latin:  ("HarmonyOS Sans", "HarmonyOS Sans Italic"),
-  font-code:   ("JetBrains Mono", "Consolas"),
-  font-emoji:  ("Segoe UI Emoji", "Noto Emoji",),
-  doc-footer:  text("ENDFIELD", weight: "bold") + text(" INDUSTRIES", size: 0.8em),
+  paper: "a4",
+  lang: "zh",
+  region: "cn",
+  font-cjk: ("HarmonyOS Sans SC", "HarmonyOS Sans"),
+  font-latin: ("HarmonyOS Sans",),
+  font-code: ("JetBrains Mono",),
+  font-emoji: ("Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Noto Emoji"),
+  font-size: 11pt,
+  doc-footer: text("ENDFIELD", weight: "bold") + text(" INDUSTRIES", size: 0.8em),
+  cover: true,
+  outline: true,
+  outline-title: auto,
+  heading-pagebreak: true,
+  page-numbering: "1",
+  equation-numbering: none,
   body,
 ) = {
   // emoji fonts are excluded here; they are routed via a show rule below
@@ -207,11 +296,21 @@
   let main-font-stack = font-cjk + font-latin
   let code-font-stack = font-code + main-font-stack
 
+  // `outline` is shadowed by the boolean parameter above, so keep a handle on
+  // the built-in element function to call further down.
+  let outline-fn = std.outline
+
+  // PDF metadata, so viewers show a real title/author instead of the filename.
+  set document(
+    title: _clean-string(title),
+    author: _author-list(author),
+  )
+
   // CJK first: prevents Latin fonts that bundle CJK glyphs from overriding
   // the intended CJK typeface.
   set text(
     font: main-font-stack,
-    size: 11pt,
+    size: font-size,
     fill: clr-darkest,
     lang: lang,
     region: region,
@@ -220,23 +319,32 @@
   // Force emoji Unicode ranges to always use the emoji font, regardless of
   // what the CJK or Latin fonts might provide for those code points.
   // Ranges covered:
-  //   U+1F300–U+1FAFF  — most emoji (faces, objects, symbols, flags …)
-  //   U+2600–U+27BF    — miscellaneous symbols & dingbats
+  //   U+1F000–U+1FAFF  — mahjong/cards/enclosed glyphs through most emoji
+  //                      (faces, objects, symbols) incl. U+1F1E6–1F1FF flags
   //   U+2300–U+23FF    — miscellaneous technical (clocks, arrows …)
-  show regex("[\\u{1F300}-\\u{1FAFF}\\u{2600}-\\u{27BF}\\u{2300}-\\u{23FF}]+"): set text(font: font-emoji + main-font-stack)
+  //   U+2600–U+27BF    — miscellaneous symbols & dingbats
+  //   U+2B00–U+2BFF    — arrows & geometric shapes (⬛ ⭐ …)
+  //   U+FE0F / U+200D  — variation selector-16 and ZWJ; these must be part of
+  //                      the match so that composite sequences (👨‍👩‍👧, ❤️)
+  //                      stay in one run and are not split across fonts.
+  show regex(
+    "[\u{1F000}-\u{1FAFF}\u{2300}-\u{23FF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]+",
+  ): set text(font: font-emoji + main-font-stack)
 
   // ── Link styles ─────────────────────────────────────────────────────────────
   show link: it => text(fill: clr-link, it)
 
   // ── Cover page ──────────────────────────────────────────────────────────────
-  _cover-page(
-    title:       title,
-    subtitle:    subtitle,
-    author:      author,
-    date:        date,
-    institution: institution,
-    paper:       paper,
-  )
+  if cover {
+    _cover-page(
+      title: title,
+      subtitle: subtitle,
+      author: author,
+      date: date,
+      institution: institution,
+      paper: paper,
+    )
+  }
 
   // ── Document-wide page settings ─────────────────────────────────────────────
   set page(
@@ -252,12 +360,29 @@
       clr-bg-light,
       clr-bg-dark,
     ),
-    background: place(bottom, image("contour_map.svg", width: 100%)),
+    background: _page-bg,
+    // Drives the footer page label; restarts numbering after the cover.
+    numbering: page-numbering,
   )
-
   counter(page).update(1)
 
   set par(justify: true, leading: .75em, spacing: 1.2em)
+  set math.equation(numbering: equation-numbering)
+
+  // Emphasis needs care with a CJK-first stack: "HarmonyOS Sans SC" also covers
+  // Latin but ships no italic face, so Latin `_emph_` would silently render
+  // upright. Inside emphasis the Latin face is therefore preferred, which
+  // restores real italics. CJK faces have no italic at all and a synthesised
+  // slant looks wrong for Han glyphs, so CJK runs are emphasised by weight.
+  show emph: it => {
+    set text(font: font-latin + font-cjk)
+    show regex("[\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}]+"): c => text(
+      style: "normal",
+      weight: "bold",
+      c,
+    )
+    it
+  }
 
   // ── Code block styles ───────────────────────────────────────────────────────
   show raw: it => {
@@ -266,14 +391,12 @@
         dir: ttb,
         // Language label tab with accent dots (only shown when lang is set)
         if it.has("lang") {
-          align(left,
-            block(
-              fill: clr-primary,
-              inset: (x: .6em, y: .3em),
-              radius: (top: 2pt),
-              text(fill: clr-darkest, size: .7em, weight: "black", upper(it.lang))
-            ),
-          )
+          align(left, block(
+            fill: clr-primary,
+            inset: (x: .6em, y: .3em),
+            radius: (top: 2pt),
+            text(fill: clr-darkest, size: .7em, weight: "black", upper(it.lang)),
+          ))
         },
         block(
           width: 100%,
@@ -284,8 +407,8 @@
           {
             set text(font: code-font-stack, size: 1em, fill: clr-darkest)
             it
-          }
-        )
+          },
+        ),
       )
     } else {
       // Inline code
@@ -298,7 +421,7 @@
         {
           show regex("[\x20-\x7E]+"): set text(font: code-font-stack)
           it
-        }
+        },
       )
     }
   }
@@ -308,14 +431,14 @@
 
   // Level 1: primary-color accent bar + rule, starts a new page
   show heading.where(level: 1): it => {
-    pagebreak(weak: true)
+    if heading-pagebreak { pagebreak(weak: true) }
     v(1.0em)
     grid(
       columns: (auto, 1fr),
       column-gutter: .7em,
       align: horizon,
       rect(width: .38em, height: 1.2em, fill: clr-primary),
-      text(size: 1.3em, weight: "black", fill: clr-darkest, it.body),
+      text(size: 1.3em, weight: "black", fill: clr-darkest, _heading-number(it) + it.body),
     )
     v(.2em)
     line(stroke: .12em + clr-light, length: 100%)
@@ -330,7 +453,7 @@
       column-gutter: .7em,
       align: horizon,
       rect(width: .3em, height: 1em, fill: clr-primary),
-      text(size: 1.15em, weight: "bold", fill: clr-darkest, it.body),
+      text(size: 1.15em, weight: "bold", fill: clr-darkest, _heading-number(it) + it.body),
     )
     v(.2em)
   }
@@ -338,16 +461,83 @@
   // Level 3: plain text, muted color
   show heading.where(level: 3): it => {
     v(.2em)
-    text(font: main-font-stack, size: 1.1em, weight: "bold", fill: clr-dark, it.body)
+    text(size: 1.1em, weight: "bold", fill: clr-dark, _heading-number(it) + it.body)
     v(.1em)
   }
 
-  // ── Table of contents ───────────────────────────────────────────────────────
-  {
-    show heading: set text(fill: clr-darkest)
-    outline(title: [目录 / Contents], indent: auto)
+  // Level 4 and deeper: keep the family consistent instead of falling back to
+  // Typst's defaults, which would jump to a different size and colour.
+  show heading.where(level: 4): it => {
+    v(.1em)
+    text(size: 1.0em, weight: "bold", fill: clr-dark, _heading-number(it) + it.body)
+    v(.1em)
   }
-  pagebreak()
+
+  // ── Lists ───────────────────────────────────────────────────────────────────
+  // Accent-coloured markers tie bullets into the yellow/black visual language.
+  // set list(marker: (
+  //   text(fill: clr-primary, weight: "black", sym.square.filled),
+  //   text(fill: clr-bar, weight: "black", sym.square.filled),
+  //   text(fill: clr-light, weight: "black", sym.square.filled),
+  // ))
+  // set enum(numbering: (..n) => text(
+  //   fill: clr-darkest, weight: "bold", n.pos().map(str).join(".") + ".",
+  // ))
+
+  // ── Tables ──────────────────────────────────────────────────────────────────
+  // Header row in the accent colour, hairline separators in the neutral grey.
+  set table(
+    stroke: (x, y) => (
+      top: if y == 0 { .12em + clr-darkest } else { .04em + clr-light },
+      bottom: .12em + clr-darkest,
+    ),
+    inset: (x: .7em, y: .5em),
+  )
+  show table.cell.where(y: 0): set text(weight: "bold")
+
+  // ── Figures ─────────────────────────────────────────────────────────────────
+  // Built by concatenation rather than markup so no stray spaces appear around
+  // the separator.
+  show figure.caption: it => text(size: .85em, fill: clr-dark, {
+    if it.numbering != none {
+      text(weight: "bold", fill: clr-darkest, {
+        it.supplement
+        [ ]
+        context it.counter.display(it.numbering)
+      })
+      it.separator
+    }
+    it.body
+  })
+
+  // ── Block quotes ────────────────────────────────────────────────────────────
+  show quote.where(block: true): it => block(
+    width: 100%,
+    above: 1.2em,
+    below: 1.2em,
+    inset: (x: 1.2em, y: .6em),
+    radius: (top: 2pt, bottom: 2pt),
+    stroke: (left: .3em + clr-light),
+    fill: clr-lightest-tr,
+    {
+      it.body
+      // `attribution` must be rendered explicitly, otherwise overriding the
+      // quote layout would silently discard it.
+      if it.attribution != none {
+        v(.4em)
+        align(right, text(size: .9em, fill: clr-dark, [— #it.attribution]))
+      }
+    },
+  )
+
+  // ── Table of contents ───────────────────────────────────────────────────────
+  if outline {
+    outline-fn(
+      title: if outline-title == auto { _outline-title(lang) } else { outline-title },
+      indent: auto,
+    )
+    pagebreak(weak: true)
+  }
 
   body
 }

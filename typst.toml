@@ -1,6 +1,7 @@
 [package]
 name        = "endfield-doc"
-version     = "0.1.0"
+version     = "0.1.2"
+compiler    = "0.15.0"
 entrypoint  = "lib.typ"
 authors     = ["metasequoiaNI <@Ives-Natsume>"]
 license     = "MIT"
@@ -11,6 +12,7 @@ categories  = ["office"]
 
 exclude = [
   "/img/",
+  "**/*.pdf",
 ]
 
 [template]
