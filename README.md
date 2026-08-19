@@ -6,8 +6,9 @@ A Typst document template styled after [*Arknights: Endfield*](https://endfield.
 
 <table>
   <tr>
-    <td><img src="img/page_3.png" width="200"></td>
-    <td><img src="img/page_5.png" width="200"></td>
+    <td><img src="img/page_3.png"></td>
+    <td><img src="img/page_4.png"></td>
+    <td><img src="img/page_5.png"></td>
   </tr>
 </table>
 
@@ -94,3 +95,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 - *Arknights: Endfield* by Hypergryph
 - *typst-touying-theme-endfield* by [@leostudiooo](https://github.com/leostudiooo/typst-touying-theme-endfield)
+
+## Contributors
+
+- [PR#1 by Himalian](https://github.com/Ives-Natsume/typst-endfield-doc-theme/pull/1#issue-4838705237)

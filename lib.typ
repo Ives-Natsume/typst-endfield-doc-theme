@@ -113,18 +113,43 @@
   )
 }
 
+// Top page margin, shared with `set page(..)` below and with the running
+// header's "is this heading at the top of the page" heuristic.
+#let _page-margin-top = 6em
+
 // ── Page header ───────────────────────────────────────────────────────────────
 #let _doc-header(doc-title) = context {
   let current-page = here().page()
 
-  // NOTE: page numbers are compared instead of using `.before(here())` on
-  // purpose. The header is laid out *above* the page body, so `here()` inside
-  // the header precedes that page's own level-1 heading in document order and
-  // `.before()` would report the previous section. Comparing pages gives the
-  // section that actually starts on this page.
-  // let section = query(heading.where(level: 1)).filter(h => h.location().page() <= current-page).at(-1, default: none)
-  // let section = if section == none { [] } else { section.body }
-  let section = query(heading.where(level: 1)).filter(h => h.location().page() <= current-page).at(-1, default: none)
+  // NOTE: page numbers alone aren't enough here. The header is laid out
+  // *above* the page body, so `here()` inside the header precedes all of this
+  // page's own content in document order — `.before(here())` would therefore
+  // always report the *previous* section, even on a page that starts with a
+  // brand-new heading. Comparing `location().page() <= current-page` fixes
+  // that case, but overcorrects when `heading-pagebreak` is disabled and more
+  // than one level-1 heading lands on the same page: it then picks the last
+  // heading on the page, even if that heading only appears partway down and
+  // the page actually opens with the *previous* section's tail content.
+  //
+  // So: only trust a heading that starts on the current page if it is the
+  // first one on that page *and* sits within a small margin of the page's top
+  // edge (i.e. nothing else was rendered above it there). Otherwise fall back
+  // to the last heading carried over from an earlier page. The margin check
+  // is a heuristic — a very short orphan line left over from the previous
+  // section could in rare cases still push a heading past the threshold — but
+  // it resolves the common case of two headings sharing a page.
+  // `.position().y` is already resolved to an absolute length, whereas the
+  // margin/threshold below is expressed in `em` — they must both be resolved
+  // to the same (absolute) unit before they can be compared.
+  let top-threshold = (_page-margin-top + 3em).to-absolute()
+  let headings = query(heading.where(level: 1))
+  let carried = headings.filter(h => h.location().page() < current-page).at(-1, default: none)
+  let on-this-page = headings.filter(h => h.location().page() == current-page)
+  let starts-page = (
+    on-this-page.len() > 0
+      and on-this-page.first().location().position().y < top-threshold
+  )
+  let section = if starts-page { on-this-page.first() } else { carried }
   let section = if section == none { [] } else { section.body }
 
   block(
@@ -225,7 +250,7 @@
           (gap: 1.2em, body: text(size: 1.5em, fill: clr-dark, subtitle))
         },
         if meta-rows.len() > 0 {
-          (gap: 1.4em, body: stack(dir: ttb, spacing: .5em, ..meta-rows))
+          (gap: 1.4em, body: stack(dir: ttb, spacing: .6em, ..meta-rows))
         },
       ).filter(r => r != none)
 
@@ -352,7 +377,7 @@
     // bottom margin must be large enough for: footer height (~2em) + footnotes.
     // footer-descent is intentionally left at default so Typst can correctly
     // reserve space for footnotes above the footer.
-    margin: (top: 6em, bottom: 6em, x: 3em),
+    margin: (top: _page-margin-top, bottom: 6em, x: 3em),
     header: _doc-header(title),
     footer: _doc-footer(doc-footer),
     fill: gradient.linear(
