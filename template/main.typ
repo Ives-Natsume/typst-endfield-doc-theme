@@ -110,11 +110,6 @@ Level-four headings stay visually consistent with the levels above.
   caption: [Depth values and their corresponding regions.],
 )
 
-#figure(
-  image("../img/example.png"),
-  caption: [Liino],
-)
-
 == Block Quote
 
 #quote(block: true, attribution: [庄方宜])[
