@@ -2,7 +2,7 @@ A Typst document template styled after [*Arknights: Endfield*](https://endfield.
 
 ## Preview
 
-![cover](thumbnail.png)
+![cover](img/cover.png)
 
 <table>
   <tr>
